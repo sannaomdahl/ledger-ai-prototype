@@ -1,5 +1,5 @@
 # Publishes a static export of the prototype to GitHub Pages on every push to
-# main: https://sannagroup.github.io/ledger-ai-prototype/
+# main: https://sannaomdahl.github.io/ledger-ai-prototype/ (customer view at /kunde/)
 # The site is public. Emails are off there (no server for /api/notify).
 name: Deploy to GitHub Pages
 
