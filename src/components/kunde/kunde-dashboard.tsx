@@ -41,6 +41,7 @@ import {
 import { toast } from "sonner"
 
 import { Badge } from "@/components/reui/badge"
+import { askModel, type Turn } from "@/components/kunde/ask"
 import { Button } from "@/components/ui/button"
 import {
   ChartContainer,
@@ -62,6 +63,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -81,17 +90,16 @@ import {
   GOAL_2026,
   grossFor,
   invoicedYtd,
-  KPIS,
   kr,
   LIVE_MESSAGE,
   LIVE_MESSAGE_SETTLED,
   mnok,
+  MONTH_REPORTS,
   MONTHS,
   PAYROLL,
   payrollTotal,
   READ_STEPS,
   relative,
-  REPORT_MONTH,
   SOFTWARE,
   softwareTotals,
   SOURCES,
@@ -110,6 +118,7 @@ import {
   type Deadline,
   type Flag,
   type Message,
+  type MonthReport,
   type Recognised,
   type Thread,
   type Todo,
@@ -1161,33 +1170,8 @@ const TONE_TEXT = {
   neutral: "text-muted-foreground",
 }
 
-function StatTiles() {
-  const stats = [
-    {
-      label: "Omsetning",
-      value: "1 284 000",
-      hint: "+12 % fra august",
-      tone: "positive" as const,
-    },
-    {
-      label: "Lønnskostnader",
-      value: "612 000",
-      hint: "+64 000 · ny konsulent",
-      tone: "neutral" as const,
-    },
-    {
-      label: "Utestående",
-      value: "412 000",
-      hint: "Truls følger opp de eldste",
-      tone: "neutral" as const,
-    },
-    {
-      label: "På konto",
-      value: "774 000",
-      hint: "162 000 etter lønn 25. okt",
-      tone: "neutral" as const,
-    },
-  ]
+function StatTiles({ report }: { report: MonthReport }) {
+  const stats = report.tiles
   return (
     <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {stats.map((s) => (
@@ -1199,7 +1183,9 @@ function StatTiles() {
           <dd className="text-foreground text-2xl font-medium tracking-tight tabular-nums">
             {s.value}
           </dd>
-          <dd className={cn("text-xs", TONE_TEXT[s.tone])}>{s.hint}</dd>
+          <dd className={cn("text-xs", TONE_TEXT[s.tone ?? "neutral"])}>
+            {s.hint}
+          </dd>
         </div>
       ))}
     </dl>
@@ -1643,12 +1629,18 @@ function TopClients({ className }: { className?: string }) {
 }
 
 /** Four consulting KPIs with what they are measured against. */
-function Kpis({ className }: { className?: string }) {
+function Kpis({
+  report,
+  className,
+}: {
+  report: MonthReport
+  className?: string
+}) {
   return (
     <Card className={className}>
-      <CardLabel aside={REPORT_MONTH}>Nøkkeltall</CardLabel>
+      <CardLabel aside={report.label}>Nøkkeltall</CardLabel>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
-        {KPIS.map((k) => (
+        {report.kpis.map((k) => (
           <div key={k.label} className="flex min-w-0 flex-col gap-0.5">
             <dt className="text-muted-foreground text-xs">{k.label}</dt>
             <dd className="text-foreground text-xl font-medium tracking-tight tabular-nums">
@@ -1969,32 +1961,42 @@ function Messages({
       { updated: "Nå" },
     )
     setDraft("")
+    // What was said so far, for the model.
+    const history: Turn[] = thread.messages.map((m) => ({
+      role: m.from === "you" ? "user" : "assistant",
+      text: m.text,
+    }))
     if (thread.status === "ai") {
-      // Sanna answers from the books, at once.
-      await wait(700)
-      push(id, {
-        id: nextId("ai"),
-        from: "truls",
-        text: askNumbers(clean),
-        at: "Nå",
-      })
+      // Sanna answers from the books: the model when there is one, the
+      // canned answers otherwise.
+      setTyping(id)
+      const text =
+        (await askModel("sanna", clean, history)) ?? askNumbers(clean)
+      setTyping(null)
+      push(id, { id: nextId("ai"), from: "truls", text, at: "Nå" })
       return
     }
-    const reply = trulsReplies(clean, asked)
-    if (asked?.text === LIVE_MESSAGE && reply)
+    const canned = trulsReplies(clean, asked)
+    const settling = asked?.text === LIVE_MESSAGE && canned
+    if (settling)
       onSettle(
         "nordic-cloud",
         /^nei/i.test(clean) ? "Alt i oktober" : "Fordel over året",
       )
-    // He reads it first, then writes.
+    // He reads it first, then writes. His answer comes from the model
+    // when there is one; the yes/no on his own question stays scripted so
+    // the task settles the same way every time.
+    const pending = settling
+      ? Promise.resolve(canned)
+      : askModel("truls", clean, history)
     await wait(1200)
     setTyping(id)
-    await wait(1300)
+    const [answer] = await Promise.all([pending, wait(1300)])
     setTyping(null)
     push(id, {
       id: nextId("truls"),
       from: "truls",
-      text: reply ?? trulsReplies(clean, undefined) ?? "",
+      text: answer ?? canned ?? trulsReplies(clean, undefined) ?? "",
       at: "Nå",
     })
   }
@@ -2281,6 +2283,8 @@ export function KundeDashboard({ className }: { className?: string }) {
   const [prefill, setPrefill] = useState<{ text: string; n: number } | null>(
     null,
   )
+  const [monthId, setMonthId] = useState(MONTH_REPORTS[0].id)
+  const report = MONTH_REPORTS.find((m) => m.id === monthId) ?? MONTH_REPORTS[0]
   const open = TODOS.filter((t) => !done[t.id]).length
 
   const setState = (id: string, state: TaskState) =>
@@ -2410,12 +2414,43 @@ export function KundeDashboard({ className }: { className?: string }) {
             keepMounted
             className="flex flex-col gap-3"
           >
-            <p className="text-muted-foreground px-1 pb-1 text-sm">
-              {REPORT_MONTH} · sist lukkede måned
-            </p>
-            <StatTiles />
-            <Kpis />
-            <Flags onAsk={(text) => openPane("messages", text)} />
+            <div className="flex items-center gap-2 px-1 pb-1">
+              <Select
+                value={monthId}
+                items={MONTH_REPORTS.map((m) => ({
+                  value: m.id,
+                  label: m.label,
+                }))}
+                onValueChange={(value) => value && setMonthId(String(value))}
+              >
+                <SelectTrigger
+                  size="sm"
+                  aria-label="Velg måned"
+                  className="bg-card shadow-stamp border-transparent"
+                >
+                  <SelectValue className="text-foreground" />
+                </SelectTrigger>
+                <SelectContent align="start">
+                  <SelectGroup>
+                    {MONTH_REPORTS.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <span className="text-muted-foreground text-sm">
+                {monthId === MONTH_REPORTS[0].id
+                  ? "sist lukkede måned"
+                  : "lukket måned"}
+              </span>
+            </div>
+            <StatTiles report={report} />
+            <Kpis report={report} />
+            {monthId === MONTH_REPORTS[0].id ? (
+              <Flags onAsk={(text) => openPane("messages", text)} />
+            ) : null}
             <GoalCard />
             <div className="grid gap-3 md:grid-cols-5">
               <BookedChart className="md:col-span-3" />

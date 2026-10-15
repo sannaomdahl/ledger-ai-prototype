@@ -387,6 +387,155 @@ export const FLAGS: Flag[] = [
   },
 ]
 
+// ── The closed months: the figures the pane shows for each ──
+
+export type MonthReport = {
+  id: string
+  label: string
+  tiles: {
+    label: string
+    value: string
+    hint: string
+    tone?: "positive" | "warning" | "neutral"
+  }[]
+  kpis: { label: string; value: string; hint: string }[]
+}
+
+export const MONTH_REPORTS: MonthReport[] = [
+  {
+    id: "2026-09",
+    label: "September 2026",
+    tiles: [
+      {
+        label: "Omsetning",
+        value: "1 284 000",
+        hint: "+12 % fra august",
+        tone: "positive",
+      },
+      {
+        label: "Lønnskostnader",
+        value: "612 000",
+        hint: "+64 000 · ny konsulent",
+        tone: "neutral",
+      },
+      {
+        label: "Utestående",
+        value: "412 000",
+        hint: "Truls følger opp",
+        tone: "neutral",
+      },
+      {
+        label: "På konto",
+        value: "774 000",
+        hint: "162 000 etter lønn 25. okt",
+        tone: "neutral",
+      },
+    ],
+    kpis: [
+      { label: "Resultat", value: "318 000", hint: "25 % margin · mål 22 %" },
+      { label: "Snitt timepris", value: "1 450 kr", hint: "+50 kr fra august" },
+      {
+        label: "Omsetning per konsulent",
+        value: "214 000",
+        hint: "+9 % fra september i fjor",
+      },
+      {
+        label: "Snitt prosjektverdi",
+        value: "386 000",
+        hint: "+14 % fra i fjor · 3,3 prosjekter per kunde",
+      },
+    ],
+  },
+  {
+    id: "2026-08",
+    label: "August 2026",
+    tiles: [
+      {
+        label: "Omsetning",
+        value: "1 146 000",
+        hint: "+54 % fra juli (ferie)",
+        tone: "positive",
+      },
+      {
+        label: "Lønnskostnader",
+        value: "548 000",
+        hint: "uendret fra juli",
+        tone: "neutral",
+      },
+      {
+        label: "Utestående",
+        value: "356 000",
+        hint: "alt innenfor fristen",
+        tone: "positive",
+      },
+      {
+        label: "På konto",
+        value: "912 000",
+        hint: "ved utgangen av måneden",
+        tone: "neutral",
+      },
+    ],
+    kpis: [
+      { label: "Resultat", value: "262 000", hint: "23 % margin · mål 22 %" },
+      { label: "Snitt timepris", value: "1 400 kr", hint: "uendret fra juli" },
+      {
+        label: "Omsetning per konsulent",
+        value: "229 000",
+        hint: "+6 % fra august i fjor",
+      },
+      {
+        label: "Snitt prosjektverdi",
+        value: "372 000",
+        hint: "+11 % fra i fjor",
+      },
+    ],
+  },
+  {
+    id: "2026-07",
+    label: "Juli 2026",
+    tiles: [
+      {
+        label: "Omsetning",
+        value: "742 000",
+        hint: "−40 % fra juni · ferie",
+        tone: "warning",
+      },
+      {
+        label: "Lønnskostnader",
+        value: "548 000",
+        hint: "feriepenger utbetalt i juni",
+        tone: "neutral",
+      },
+      {
+        label: "Utestående",
+        value: "298 000",
+        hint: "alt innenfor fristen",
+        tone: "positive",
+      },
+      {
+        label: "På konto",
+        value: "1 105 000",
+        hint: "ved utgangen av måneden",
+        tone: "neutral",
+      },
+    ],
+    kpis: [
+      { label: "Resultat", value: "41 000", hint: "6 % margin · ferie" },
+      { label: "Snitt timepris", value: "1 400 kr", hint: "uendret" },
+      {
+        label: "Omsetning per konsulent",
+        value: "148 000",
+        hint: "−3 % fra juli i fjor",
+      },
+      {
+        label: "Snitt prosjektverdi",
+        value: "372 000",
+        hint: "+11 % fra i fjor",
+      },
+    ],
+  },
+]
+
 /** Consulting KPIs for the month, with what to compare against. */
 export const KPIS: { label: string; value: string; hint: string }[] = [
   { label: "Resultat", value: "318 000", hint: "25 % margin · mål 22 %" },
@@ -445,7 +594,7 @@ const MONTH_NAMES = [
   "desember",
 ]
 
-const RECEIVABLES = [
+export const RECEIVABLES = [
   {
     name: "Havlyst AS",
     amount: 240_000,
@@ -460,7 +609,11 @@ const RECEIVABLES = [
   },
 ]
 
-const BANK = { today: 774_000, afterPayroll: 162_000, savings: 1_450_000 }
+export const BANK = {
+  today: 774_000,
+  afterPayroll: 162_000,
+  savings: 1_450_000,
+}
 
 /** Answers from the books. Reads the question for a person, a vendor, a
     customer, a month or a subject, and answers from the same data the
@@ -854,4 +1007,36 @@ export function relative(iso: string) {
   if (d === 0) return "i dag"
   if (d === 1) return "i morgen"
   return `om ${d} dager`
+}
+
+// ── Everything the model is given when it answers for Sanna or Truls ──
+
+/** The whole dummy ledger as one object, for the system prompt. */
+export function ledgerForModel() {
+  return {
+    today: TODAY,
+    firm: FIRM,
+    contact: CONTACT,
+    accountant: ACCOUNTANT,
+    openTasks: TODOS,
+    doneTasks: DONE,
+    withAccountant: WITH_TRULS,
+    upcoming: UPCOMING,
+    payrollOctober: PAYROLL.map((p) => ({ ...p, grossThisMonth: grossFor(p) })),
+    payrollOctoberTotal: payrollTotal(),
+    consultantsBillableShareSeptember: CONSULTANTS,
+    billableTarget: UTILIZATION_TARGET,
+    revenueByMonth2026: MONTHS,
+    revenueGoal2026: GOAL_2026,
+    invoicedYtd: invoicedYtd(),
+    bookedAhead: bookedAhead(),
+    topClientsYtd: TOP_CLIENTS,
+    receivablesOver30Days: RECEIVABLES,
+    bank: BANK,
+    softwareAugSep: SOFTWARE,
+    deadlines: DEADLINES,
+    flags: FLAGS,
+    monthReports: MONTH_REPORTS,
+    earlierConversations: THREADS.filter((t) => t.status !== "ai"),
+  }
 }

@@ -34,3 +34,15 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Kundevisningen (/kunde) og modellen bak chatten
+
+`/kunde` er Sanna-visningen for Fjordlys Rådgivning AS. Chatten (Truls og
+Sanna KI) spør `POST /api/ask`, som sender hele dummy-regnskapet til Claude.
+Uten nøkkel svarer ruten 503 og siden bruker de innebygde svarene.
+
+- Lokalt: legg `ANTHROPIC_API_KEY=...` i `.env.local` og kjør `npm run dev`.
+- Hostet med server (Vercel e.l.): sett `ANTHROPIC_API_KEY` som miljøvariabel.
+- GitHub Pages er statisk og har ingen server. Sett `NEXT_PUBLIC_BASE_PATH`
+  som før og `NEXT_PUBLIC_ASK_URL=https://<din-vercel-app>/api/ask` ved bygging
+  hvis chatten der skal gå via en hostet kopi.
