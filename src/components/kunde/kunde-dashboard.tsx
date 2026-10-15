@@ -460,7 +460,7 @@ function UploadBox({
           </Button>
           <TripletexLink size="sm" />
           <span className="text-muted-foreground ml-auto text-xs">
-            {ACCOUNTANT.first} bokfører det i dag
+            {ACCOUNTANT.first} bokfører i dag
           </span>
         </div>
       </Card>
@@ -542,6 +542,12 @@ function UploadBox({
         placeholder="Hva er dokumentet? «Reise Andrea», «lunsj med kunde» …"
         aria-label="Hva er dokumentet?"
         rows={2}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault()
+            if (file) void take(file)
+          }
+        }}
         className="bg-background min-h-0 resize-none rounded-xl"
       />
       <div className="flex flex-wrap items-center gap-2">
@@ -608,8 +614,18 @@ function PayrollDialog({
   onApprove: () => void
 }) {
   // Editable in place: a wrong number is fixed here, not in a message.
-  const [lines, setLines] = useState(PAYROLL)
-  const total = lines.reduce((sum, p) => sum + grossFor(p), 0)
+  const [lines, setLines] = useState(() =>
+    PAYROLL.map((p) =>
+      p.startDay
+        ? {
+            ...p,
+            base: grossFor(p) - p.commission,
+            note: `${p.note} · ${kr(p.base)} i full lønn, ${workingDaysFrom(p.startDay)}/${WORKING_DAYS} dager`,
+          }
+        : p,
+    ),
+  )
+  const total = lines.reduce((sum, p) => sum + p.base + p.commission, 0)
   const changed = total !== payrollTotal()
 
   function edit(i: number, field: "base" | "commission", raw: string) {
@@ -657,17 +673,18 @@ function PayrollDialog({
                   <span className="text-foreground block font-medium">
                     {p.name}
                   </span>
-                  <span className="text-muted-foreground block text-xs">
+                  <span
+                    className="text-muted-foreground block truncate text-xs"
+                    title={p.note ? `${p.role} · ${p.note}` : undefined}
+                  >
                     {p.role}
+                    {p.note ? (
+                      <>
+                        <span aria-hidden="true"> · </span>
+                        <span className="text-note">{p.note}</span>
+                      </>
+                    ) : null}
                   </span>
-                  {p.note ? (
-                    <span className="text-note mt-1 block text-xs text-pretty">
-                      {p.note}
-                      {p.startDay
-                        ? ` · ${workingDaysFrom(p.startDay)} av ${WORKING_DAYS} arbeidsdager, ${kr(grossFor(p))} kr i oktober`
-                        : null}
-                    </span>
-                  ) : null}
                 </th>
                 <td className="py-2 pl-4 text-right">
                   <Input
@@ -691,7 +708,7 @@ function PayrollDialog({
                   />
                 </td>
                 <td className="text-foreground py-2 pl-4 text-right leading-8 font-medium tabular-nums">
-                  {kr(grossFor(p))}
+                  {kr(p.base + p.commission)}
                 </td>
               </tr>
             ))}

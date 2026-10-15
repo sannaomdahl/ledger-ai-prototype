@@ -163,7 +163,7 @@ export const PAYROLL: PayLine[] = [
     role: "Seniorkonsulent",
     base: 82_000,
     commission: 23_000,
-    note: "Provisjon fra Havlyst-prosjektet, Q3",
+    note: "Provisjon Havlyst Q3",
   },
   {
     name: "Ida Strand",
@@ -178,7 +178,7 @@ export const PAYROLL: PayLine[] = [
     role: "Konsulent",
     base: 68_000,
     commission: 0,
-    note: "50 % sykmeldt fra 6. oktober. NAV refunderer fra dag 17.",
+    note: "50 % sykmeldt fra 6. okt · NAV fra dag 17",
   },
   {
     name: "Amalie Voss",
@@ -186,7 +186,7 @@ export const PAYROLL: PayLine[] = [
     base: 65_000,
     commission: 0,
     startDay: 6,
-    note: "Oppstart 6. oktober",
+    note: "Fra 6. okt",
   },
 ]
 
