@@ -375,14 +375,15 @@ export const FLAGS: Flag[] = [
     id: "likviditet",
     title: "Ikke nok til husleien 25. oktober",
     detail:
-      "Etter lønn 25. oktober står det 162 000 kr på driftskontoen, og husleien 1. november er 184 000 kr. Overfør 25 000 kr fra sparekontoen før 1. november.",
-    ask: "Hei Truls! Kan du flytte 25 000 kr fra sparekontoen til drift før husleien 1. november?",
+      "Lønn og husleie forfaller begge 25. oktober. Etter lønn står det 162 000 kr på driftskontoen, og husleien er 184 000 kr. Overfør 25 000 kr fra sparekontoen før 25. oktober.",
+    ask: "Hei Truls! Kan du flytte 25 000 kr fra sparekontoen til drift før husleien 25. oktober?",
     bank: true,
   },
   {
     id: "programvare",
     title: "Programvare økte 20 % siden august",
-    detail: "38 300 kr i september, 6 400 kr mer. Det meste er Claude.",
+    detail:
+      "38 300 kr i september, 6 400 kr mer enn fjoråret. I hovedsak Claude.",
     expands: true,
   },
 ]
@@ -416,7 +417,7 @@ export const MONTH_REPORTS: MonthReport[] = [
     summary: [
       "Omsetningen endte på 1 284 000 kr, 12 % høyere enn i august. Økningen kommer fra to nye kunder, Nordvik Energi og Solberg Bygg.",
       "Lønnskostnadene økte med 64 000 kr fordi Nora startet 1. september. Resultatet ble 318 000 kr, 25 % margin.",
-      "Programvare har økt 20 % siden august, i hovedsak Claude.",
+      "Programvare har økt 20 % fra i fjor, i hovedsak Claude.",
     ],
     tiles: [
       {
@@ -716,9 +717,9 @@ export function askNumbers(question: string): string {
   if (has("skylder", "utestående", "forfalt", "purring", "ubetalt"))
     return `Utestående er 412 000 kr. Over 30 dager: ${RECEIVABLES.map((r) => `${r.name} ${kr(r.amount)} kr (${r.days} dager)`).join(" og ")}. Resten er innenfor fristen.`
   if (has("konto", "bank", "saldo", "likvid", "penger", "kontant"))
-    return `${kr(BANK.today)} kr på driftskontoen og ${kr(BANK.savings)} kr på sparekontoen. Etter lønn 25. oktober står det ${kr(BANK.afterPayroll)} kr på drift, så husleien 1. november trenger 25 000 kr fra sparekontoen.`
+    return `${kr(BANK.today)} kr på driftskontoen og ${kr(BANK.savings)} kr på sparekontoen. Etter lønn 25. oktober står det ${kr(BANK.afterPayroll)} kr på drift, så husleien samme dag trenger 25 000 kr fra sparekontoen.`
   if (has("husleie", "leie"))
-    return `Husleien er 184 000 kr i måneden og forfaller den 1. Neste er 1. november.`
+    return `Husleien er 184 000 kr i måneden og forfaller den 25. Neste er 25. oktober, samme dag som lønn.`
   if (has("mål", "budsjett", "lander")) {
     const landing = invoicedYtd() + bookedAhead()
     return `${mnok(invoicedYtd())} fakturert til og med september. Med det som er booket ut året lander dere på ${mnok(landing)}, ${kr(GOAL_2026 - landing)} kr under målet på ${mnok(GOAL_2026)}.`

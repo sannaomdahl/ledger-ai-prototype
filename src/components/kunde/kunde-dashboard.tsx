@@ -1261,11 +1261,11 @@ function SoftwareLines() {
       <li className="text-muted-foreground flex flex-wrap items-center gap-x-4 pt-1 text-xs">
         <span className="flex items-center gap-1.5">
           <span className="bg-chart-1 size-2 rounded-full" aria-hidden="true" />
-          September
+          September i år
         </span>
         <span className="flex items-center gap-1.5">
           <span className="bg-chart-3 size-2 rounded-full" aria-hidden="true" />
-          August
+          September i fjor
         </span>
         <span className="sm:ml-auto">Kr per måned, eks. mva.</span>
       </li>
@@ -1288,7 +1288,7 @@ function Notes({ onAsk }: { onAsk: (text: string) => void }) {
             <div className="flex min-w-0 flex-col gap-1.5">
               <span className="text-foreground font-medium">
                 {flag.expands
-                  ? `Programvare økte ${Math.round(change * 100)} % siden august`
+                  ? `Programvare økte ${Math.round(change * 100)} % fra i fjor`
                   : flag.title}
               </span>
               <span className="text-muted-foreground text-pretty">
@@ -1640,7 +1640,7 @@ function trulsReplies(text: string, asked: Message | undefined): string | null {
     t.includes("sparekonto") ||
     t.includes("overfør")
   )
-    return "Ja, jeg flytter 25 000 kr fra sparekontoen 30. oktober, så er husleien dekket. Vil du at jeg flytter 100 000 i stedet, så dere har litt luft i november?"
+    return "Ja, jeg flytter 25 000 kr fra sparekontoen 24. oktober, så er husleien dekket. Vil du at jeg flytter 100 000 i stedet, så dere har litt luft i november?"
   if (t.includes("purring"))
     return "Ja, jeg sender purring til begge i dag. Havlyst får en vennlig én siden de pleier å betale sent, Brekke Consulting får standard. Ok?"
   if (t.includes("programvare"))
