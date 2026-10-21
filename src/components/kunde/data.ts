@@ -381,7 +381,7 @@ export const FLAGS: Flag[] = [
   },
   {
     id: "programvare",
-    title: "Programvare økte 20 % siden august",
+    title: "Programvare økte 20 % fra i fjor",
     detail:
       "38 300 kr i september, 6 400 kr mer enn fjoråret. I hovedsak Claude.",
     expands: true,
