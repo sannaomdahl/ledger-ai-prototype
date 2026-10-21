@@ -1565,7 +1565,7 @@ function TopClients({ className }: { className?: string }) {
                   style={{ width: `${(c.ytd / max) * 100}%` }}
                 />
               </span>
-              <span className="text-foreground w-16 shrink-0 text-right tabular-nums">
+              <span className="text-foreground w-20 shrink-0 text-right whitespace-nowrap tabular-nums">
                 {mnok(c.ytd)}
               </span>
               <span
