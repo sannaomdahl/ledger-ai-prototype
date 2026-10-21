@@ -373,9 +373,9 @@ export type Flag = {
 export const FLAGS: Flag[] = [
   {
     id: "likviditet",
-    title: "Ikke nok på konto til husleien 1. november",
+    title: "Ikke nok til husleien 25. oktober",
     detail:
-      "Etter lønn 25. oktober står det 162 000 kr på driftskontoen. Husleien er 184 000 kr. Overfør 25 000 kr fra sparekontoen før 1. november.",
+      "Etter lønn 25. oktober står det 162 000 kr på driftskontoen, og husleien 1. november er 184 000 kr. Overfør 25 000 kr fra sparekontoen før 1. november.",
     ask: "Hei Truls! Kan du flytte 25 000 kr fra sparekontoen til drift før husleien 1. november?",
     bank: true,
   },
@@ -416,7 +416,7 @@ export const MONTH_REPORTS: MonthReport[] = [
     summary: [
       "Omsetningen endte på 1 284 000 kr, 12 % høyere enn i august. Økningen kommer fra to nye kunder, Nordvik Energi og Solberg Bygg.",
       "Lønnskostnadene økte med 64 000 kr fordi Nora startet 1. september. Resultatet ble 318 000 kr, 25 % margin.",
-      "Programvare har økt 20 % siden august, mest Claude. Husleien 1. november trenger 25 000 kr fra sparekontoen.",
+      "Programvare har økt 20 % siden august, i hovedsak Claude.",
     ],
     tiles: [
       {
@@ -445,7 +445,11 @@ export const MONTH_REPORTS: MonthReport[] = [
       },
     ],
     kpis: [
-      { label: "Resultat", value: "318 000", hint: "25 % margin · mål 22 %" },
+      {
+        label: "Resultat",
+        value: "318 000",
+        hint: "25 % margin · +3 % mot mål",
+      },
       { label: "Snitt timepris", value: "1 450 kr", hint: "+50 kr fra august" },
       {
         label: "Omsetning per konsulent",
@@ -455,7 +459,7 @@ export const MONTH_REPORTS: MonthReport[] = [
       {
         label: "Snitt prosjektverdi",
         value: "386 000",
-        hint: "+14 % fra i fjor · 3,3 prosjekter per kunde",
+        hint: "+14 % fra i fjor",
       },
     ],
   },
@@ -563,7 +567,7 @@ export const MONTH_REPORTS: MonthReport[] = [
 
 /** Consulting KPIs for the month, with what to compare against. */
 export const KPIS: { label: string; value: string; hint: string }[] = [
-  { label: "Resultat", value: "318 000", hint: "25 % margin · mål 22 %" },
+  { label: "Resultat", value: "318 000", hint: "25 % margin · +3 % mot mål" },
   { label: "Snitt timepris", value: "1 450 kr", hint: "+50 kr fra august" },
   {
     label: "Omsetning per konsulent",
@@ -573,7 +577,7 @@ export const KPIS: { label: string; value: string; hint: string }[] = [
   {
     label: "Snitt prosjektverdi",
     value: "386 000",
-    hint: "+14 % fra i fjor · 3,3 prosjekter per kunde",
+    hint: "+14 % fra i fjor",
   },
 ]
 

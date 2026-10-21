@@ -29,7 +29,6 @@ import {
   AlertCircleIcon,
   ArrowLeftIcon,
   CheckIcon,
-  ClockIcon,
   ExternalLinkIcon,
   FileTextIcon,
   ListTodoIcon,
@@ -85,8 +84,6 @@ import {
   CONSULTANTS,
   CONTACT,
   dayLabel,
-  DEADLINE_STATUS,
-  DEADLINES,
   DONE,
   FIRM,
   FLAGS,
@@ -118,7 +115,6 @@ import {
   WITH_TRULS,
   WORKING_DAYS,
   workingDaysFrom,
-  type Deadline,
   type Message,
   type MonthReport,
   type Recognised,
@@ -1624,98 +1620,6 @@ function Kpis({
   )
 }
 
-/** A deadline's state, icon and label in one colour. */
-function DeadlineState({
-  d,
-  done,
-}: {
-  d: Deadline
-  done: Record<string, string>
-}) {
-  // Approving payroll in the timeline settles the matching deadline.
-  const status =
-    d.label === "Godkjenn lønn" && done["lonn-okt"] ? "done" : d.status
-  if (status === "done")
-    return (
-      <span className="text-success-text flex items-center gap-1 text-xs font-medium">
-        <CheckIcon className="size-3.5" aria-hidden="true" />
-        {DEADLINE_STATUS.done}
-      </span>
-    )
-  if (status === "you" || d.warn)
-    return (
-      <span className="bg-brand/10 text-brand-contrast rounded-full px-2 py-0.5 text-xs font-medium">
-        {status === "you" ? DEADLINE_STATUS.you : relative(d.date)}
-      </span>
-    )
-  return (
-    <span className="text-muted-foreground flex items-center gap-1 text-xs">
-      <ClockIcon className="size-3.5" aria-hidden="true" />
-      {DEADLINE_STATUS[status]}
-    </span>
-  )
-}
-
-function DeadlineRow({
-  d,
-  done,
-}: {
-  d: Deadline
-  done: Record<string, string>
-}) {
-  return (
-    <li className="flex flex-col gap-1">
-      <div className="flex items-center gap-3 text-sm">
-        <span className="text-muted-foreground w-12 shrink-0 tabular-nums">
-          {dayLabel(d.date)}
-        </span>
-        <span className="text-foreground min-w-0 flex-1">{d.label}</span>
-        <DeadlineState d={d} done={done} />
-      </div>
-      {d.note ? (
-        <p className="text-muted-foreground pl-15 text-xs text-pretty">
-          {d.note}
-        </p>
-      ) : null}
-    </li>
-  )
-}
-
-function Deadlines({
-  className,
-  done,
-}: {
-  className?: string
-  done: Record<string, string>
-}) {
-  const [first, ...rest] = DEADLINES
-  return (
-    <Card className={className}>
-      <CardLabel>Frister i {first.month.toLowerCase()}</CardLabel>
-      <ul className="flex flex-col gap-3">
-        {first.items.map((d) => (
-          <DeadlineRow key={d.date} d={d} done={done} />
-        ))}
-      </ul>
-      {rest.map((group) => (
-        <div
-          key={group.month}
-          className="border-border flex flex-col gap-3 border-t pt-4"
-        >
-          <span className="text-muted-foreground text-xs font-medium">
-            {group.month}
-          </span>
-          <ul className="flex flex-col gap-3">
-            {group.items.map((d) => (
-              <DeadlineRow key={d.date} d={d} done={done} />
-            ))}
-          </ul>
-        </div>
-      ))}
-    </Card>
-  )
-}
-
 // ── Meldinger ──
 
 /** What Truls says back in the demo, keyed on what was asked. */
@@ -2463,11 +2367,20 @@ export function KundeDashboard({ className }: { className?: string }) {
                       <TrulsPhoto className="size-10 sm:order-first" />
                     </div>
                   </div>
-                  <div className="text-foreground flex flex-col gap-2 text-sm text-pretty">
+                  <ul className="flex flex-col gap-2.5">
                     {report.summary.map((line) => (
-                      <p key={line}>{line}</p>
+                      <li
+                        key={line}
+                        className="text-foreground flex gap-3 text-sm text-pretty"
+                      >
+                        <span
+                          className="bg-chart-1 mt-[7px] size-1.5 shrink-0 rounded-full"
+                          aria-hidden="true"
+                        />
+                        {line}
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </header>
 
                 <StatTiles report={report} />
@@ -2476,7 +2389,6 @@ export function KundeDashboard({ className }: { className?: string }) {
                 <BookedChart />
                 <Utilization />
                 <TopClients />
-                <Deadlines done={done} />
                 {monthId === MONTH_REPORTS[0].id ? (
                   <Notes onAsk={(text) => openPane("messages", text)} />
                 ) : null}
