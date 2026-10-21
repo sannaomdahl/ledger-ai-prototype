@@ -15,25 +15,32 @@
 // a look, the year against its goal, booked against invoiced, billable
 // share, KPIs and the month's deadlines.
 // Everything is dummy data from ./data, held in local state.
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 import { cn } from "cn"
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
   CheckIcon,
-  ChevronDownIcon,
   ClockIcon,
   ExternalLinkIcon,
+  FileTextIcon,
   ListTodoIcon,
   LoaderCircleIcon,
   LockIcon,
   MessageCircleIcon,
   MessagesSquareIcon,
   PaperclipIcon,
+  PrinterIcon,
   SendIcon,
   SparklesIcon,
-  TrendingUpIcon,
   UploadIcon,
   XIcon,
   ZapIcon,
@@ -49,11 +56,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+import {} from "@/components/ui/collapsible"
 import {
   Dialog,
   DialogContent,
@@ -116,7 +119,6 @@ import {
   WORKING_DAYS,
   workingDaysFrom,
   type Deadline,
-  type Flag,
   type Message,
   type MonthReport,
   type Recognised,
@@ -134,9 +136,6 @@ const ENTER =
 const ARRIVE =
   "animate-in fade-in slide-in-from-top-2 fill-mode-both duration-400 ease-snappy motion-reduce:slide-in-from-top-0"
 
-const PANEL_MOTION =
-  "h-(--collapsible-panel-height) overflow-hidden transition-[height] duration-200 data-ending-style:h-0 data-starting-style:h-0 motion-reduce:transition-none"
-
 type Pane = "todo" | "messages" | "numbers"
 
 const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms))
@@ -144,6 +143,9 @@ const wait = (ms: number) => new Promise((r) => window.setTimeout(r, ms))
 // ── Small pieces ──
 
 /** A white card stamped onto the paper, like the mockups on sanna.no. */
+/** True inside the month-end document, where cards are sections on one sheet. */
+const DocContext = createContext(false)
+
 function Card({
   className,
   children,
@@ -151,10 +153,13 @@ function Card({
   className?: string
   children: ReactNode
 }) {
+  const doc = useContext(DocContext)
   return (
     <section
       className={cn(
-        "bg-card shadow-stamp flex flex-col gap-4 rounded-2xl p-5",
+        doc
+          ? "border-border flex flex-col gap-4 border-t pt-6 [counter-increment:section] break-inside-avoid"
+          : "bg-card shadow-stamp flex flex-col gap-4 rounded-2xl p-5",
         className,
       )}
     >
@@ -163,7 +168,8 @@ function Card({
   )
 }
 
-/** The small bolt-and-label line a Sanna card starts with. */
+/** The small bolt-and-label line a Sanna card starts with; in the
+    document, a numbered heading. */
 function CardLabel({
   children,
   aside,
@@ -171,6 +177,18 @@ function CardLabel({
   children: ReactNode
   aside?: ReactNode
 }) {
+  const doc = useContext(DocContext)
+  if (doc)
+    return (
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-foreground text-sm font-medium before:text-muted-foreground before:mr-2 before:content-[counter(section)]">
+          {children}
+        </h3>
+        {aside ? (
+          <span className="text-muted-foreground text-xs">{aside}</span>
+        ) : null}
+      </div>
+    )
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
@@ -238,7 +256,7 @@ function TripletexLink({ size }: { size?: "sm" }) {
 
 function TopBar({ onChat }: { onChat: () => void }) {
   return (
-    <header className="mx-auto flex w-full max-w-[920px] items-center justify-between gap-4 px-4 pt-5 sm:px-6">
+    <header className="mx-auto flex w-full max-w-[920px] items-center justify-between gap-4 px-4 pt-5 sm:px-6 print:hidden">
       <div className="flex min-w-0 items-center gap-3 text-sm">
         <span className="text-foreground flex items-center gap-1 font-semibold tracking-tight">
           <ZapIcon className="size-4 fill-current" aria-hidden="true" />
@@ -1172,12 +1190,21 @@ const TONE_TEXT = {
 
 function StatTiles({ report }: { report: MonthReport }) {
   const stats = report.tiles
+  const doc = useContext(DocContext)
   return (
-    <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <dl
+      className={cn(
+        "grid grid-cols-2 sm:grid-cols-4",
+        doc ? "bg-border gap-px overflow-hidden rounded-lg" : "gap-3",
+      )}
+    >
       {stats.map((s) => (
         <div
           key={s.label}
-          className="bg-card shadow-stamp flex flex-col gap-1 rounded-2xl p-4"
+          className={cn(
+            "flex flex-col gap-1 p-4",
+            doc ? "bg-card" : "bg-card shadow-stamp rounded-2xl",
+          )}
         >
           <dt className="text-muted-foreground text-xs">{s.label}</dt>
           <dd className="text-foreground text-2xl font-medium tracking-tight tabular-nums">
@@ -1250,135 +1277,73 @@ function SoftwareLines() {
   )
 }
 
-/** One thing worth a look. Closable; opens in place or pre-writes a question to Truls. */
-function FlagCard({
-  flag,
-  onClose,
-  onAsk,
-}: {
-  flag: Flag
-  onClose: () => void
-  onAsk: (text: string) => void
-}) {
-  const [open, setOpen] = useState(false)
+/** The flags, written up as Truls' notes at the end of the report. */
+function Notes({ onAsk }: { onAsk: (text: string) => void }) {
   const { change } = softwareTotals()
-  const title = flag.expands
-    ? `Programvare økte ${Math.round(change * 100)} % siden august`
-    : flag.title
-  const body = (
-    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-      <span className="text-foreground text-[15px] leading-5 font-medium">
-        {title}
-      </span>
-      <span className="text-muted-foreground text-sm text-pretty">
-        {flag.detail}
-      </span>
-    </div>
-  )
-  const close = (
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      className="text-muted-foreground -mt-1 -mr-1 shrink-0"
-      onClick={onClose}
-      aria-label="Lukk"
-    >
-      <XIcon aria-hidden="true" />
-    </Button>
-  )
-  const icon = (
-    <span className="bg-brand/10 text-brand-contrast flex size-9 shrink-0 items-center justify-center rounded-lg">
-      <TrendingUpIcon className="size-4" aria-hidden="true" />
-    </span>
-  )
-  if (flag.expands) {
-    return (
-      <Collapsible
-        open={open}
-        onOpenChange={setOpen}
-        className="bg-card shadow-stamp group/flag rounded-2xl"
-      >
-        <div className="flex items-start gap-3 p-4 sm:px-5">
-          {icon}
-          <CollapsibleTrigger
-            type="button"
-            className="focus-visible:ring-ring/50 flex min-w-0 flex-1 items-start gap-3 rounded-lg text-left outline-none focus-visible:ring-[3px]"
-          >
-            {body}
-            <ChevronDownIcon
-              className="text-muted-foreground ease-snappy mt-1 size-4 shrink-0 transition-[rotate] duration-200 group-data-open/flag:rotate-180"
-              aria-hidden="true"
-            />
-          </CollapsibleTrigger>
-          {close}
-        </div>
-        <CollapsibleContent className={PANEL_MOTION}>
-          <div className="px-4 pb-4 sm:px-5 sm:pb-5">
-            <SoftwareLines />
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-    )
-  }
   return (
-    <div className="bg-card shadow-stamp flex flex-col gap-3 rounded-2xl p-4 sm:px-5">
-      <div className="flex items-start gap-3">
-        {icon}
-        {body}
-        {close}
-      </div>
-      {flag.ask ? (
-        <div className="flex gap-2 pl-12">
-          <Button variant="outline" size="sm" onClick={() => onAsk(flag.ask!)}>
-            <MessagesSquareIcon data-icon="inline-start" aria-hidden="true" />
-            Spør {ACCOUNTANT.first}
-          </Button>
-          {flag.bank ? (
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={
-                <a href={BANK_URL} target="_blank" rel="noopener noreferrer" />
-              }
-            >
-              Til bank
-              <ExternalLinkIcon
-                data-icon="inline-end"
-                className="text-muted-foreground"
-                aria-hidden="true"
-              />
-            </Button>
-          ) : null}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground"
-            onClick={onClose}
-          >
-            Lukk
-          </Button>
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-function Flags({ onAsk }: { onAsk: (text: string) => void }) {
-  const [closed, setClosed] = useState<Set<string>>(new Set())
-  const open = FLAGS.filter((f) => !closed.has(f.id))
-  if (!open.length) return null
-  return (
-    <div className="flex flex-col gap-3">
-      {open.map((flag) => (
-        <FlagCard
-          key={flag.id}
-          flag={flag}
-          onAsk={onAsk}
-          onClose={() => setClosed((c) => new Set(c).add(flag.id))}
-        />
-      ))}
-    </div>
+    <Card>
+      <CardLabel>Merknader fra {ACCOUNTANT.first}</CardLabel>
+      <ol className="flex flex-col gap-4">
+        {FLAGS.map((flag, i) => (
+          <li key={flag.id} className="flex gap-3 text-sm">
+            <span className="text-muted-foreground w-4 shrink-0 tabular-nums">
+              {i + 1}.
+            </span>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <span className="text-foreground font-medium">
+                {flag.expands
+                  ? `Programvare økte ${Math.round(change * 100)} % siden august`
+                  : flag.title}
+              </span>
+              <span className="text-muted-foreground text-pretty">
+                {flag.detail}
+              </span>
+              {flag.expands ? (
+                <div className="pt-1">
+                  <SoftwareLines />
+                </div>
+              ) : null}
+              {flag.ask ? (
+                <div className="flex flex-wrap gap-2 pt-1 print:hidden">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onAsk(flag.ask!)}
+                  >
+                    <MessagesSquareIcon
+                      data-icon="inline-start"
+                      aria-hidden="true"
+                    />
+                    Spør {ACCOUNTANT.first}
+                  </Button>
+                  {flag.bank ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      nativeButton={false}
+                      render={
+                        <a
+                          href={BANK_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        />
+                      }
+                    >
+                      Til bank
+                      <ExternalLinkIcon
+                        data-icon="inline-end"
+                        className="text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </Card>
   )
 }
 
@@ -1445,6 +1410,7 @@ const chartConfig = {
 
 /** Booked against invoiced, per month. Oct–Dec are booked only. */
 function BookedChart({ className }: { className?: string }) {
+  const doc = useContext(DocContext)
   return (
     <Card className={className}>
       <CardLabel aside="kr per måned · 2026">Booket mot fakturert</CardLabel>
@@ -1468,32 +1434,36 @@ function BookedChart({ className }: { className?: string }) {
             fontSize={11}
             className="fill-muted-foreground"
           />
-          <ChartTooltip
-            cursor={{ fill: "var(--muted)", radius: 6 }}
-            content={
-              <ChartTooltipContent
-                formatter={(value, name) => (
-                  <div className="flex w-full items-center justify-between gap-4">
-                    <span className="text-muted-foreground">
-                      {name === "booket" ? "Booket" : "Fakturert"}
-                    </span>
-                    <span className="text-foreground font-medium tabular-nums">
-                      {kr(Number(value))} kr
-                    </span>
-                  </div>
-                )}
-              />
-            }
-          />
+          {doc ? null : (
+            <ChartTooltip
+              cursor={{ fill: "var(--muted)", radius: 6 }}
+              content={
+                <ChartTooltipContent
+                  formatter={(value, name) => (
+                    <div className="flex w-full items-center justify-between gap-4">
+                      <span className="text-muted-foreground">
+                        {name === "booket" ? "Booket" : "Fakturert"}
+                      </span>
+                      <span className="text-foreground font-medium tabular-nums">
+                        {kr(Number(value))} kr
+                      </span>
+                    </div>
+                  )}
+                />
+              }
+            />
+          )}
           <Bar
             dataKey="booket"
             fill="var(--color-booket)"
             radius={[4, 4, 0, 0]}
+            isAnimationActive={!doc}
           />
           <Bar
             dataKey="fakturert"
             fill="var(--color-fakturert)"
             radius={[4, 4, 0, 0]}
+            isAnimationActive={!doc}
           />
         </BarChart>
       </ChartContainer>
@@ -2318,7 +2288,7 @@ export function KundeDashboard({ className }: { className?: string }) {
     >
       <TopBar onChat={() => openPane("messages")} />
       <main className="mx-auto flex w-full max-w-[920px] flex-col gap-8 px-4 pt-10 pb-20 sm:px-6 sm:pt-14">
-        <div className={ENTER}>
+        <div className={cn(ENTER, "print:hidden")}>
           <Greeting open={open} />
         </div>
 
@@ -2328,7 +2298,7 @@ export function KundeDashboard({ className }: { className?: string }) {
           className={cn("gap-6", ENTER)}
           style={{ animationDelay: "100ms" }}
         >
-          <TabsList className="bg-muted w-full group-data-horizontal/tabs:h-10">
+          <TabsList className="bg-muted w-full group-data-horizontal/tabs:h-10 print:hidden">
             <TabsTrigger
               value="todo"
               className="data-active:bg-card data-active:shadow-stamp"
@@ -2359,8 +2329,8 @@ export function KundeDashboard({ className }: { className?: string }) {
               value="numbers"
               className="data-active:bg-card data-active:shadow-stamp"
             >
-              <TrendingUpIcon className="size-4" aria-hidden="true" />
-              Tallene dine
+              <FileTextIcon className="size-4" aria-hidden="true" />
+              Månedsavslutning
             </TabsTrigger>
           </TabsList>
 
@@ -2412,9 +2382,9 @@ export function KundeDashboard({ className }: { className?: string }) {
           <TabsContent
             value="numbers"
             keepMounted
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-4"
           >
-            <div className="flex items-center gap-2 px-1 pb-1">
+            <div className="flex flex-wrap items-center gap-2 px-1 print:hidden">
               <Select
                 value={monthId}
                 items={MONTH_REPORTS.map((m) => ({
@@ -2445,25 +2415,85 @@ export function KundeDashboard({ className }: { className?: string }) {
                   ? "sist lukkede måned"
                   : "lukket måned"}
               </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto"
+                onClick={() => window.print()}
+              >
+                <PrinterIcon data-icon="inline-start" aria-hidden="true" />
+                Last ned PDF
+              </Button>
             </div>
-            <StatTiles report={report} />
-            <Kpis report={report} />
-            {monthId === MONTH_REPORTS[0].id ? (
-              <Flags onAsk={(text) => openPane("messages", text)} />
-            ) : null}
-            <GoalCard />
-            <div className="grid gap-3 md:grid-cols-5">
-              <BookedChart className="md:col-span-3" />
-              <Utilization className="md:col-span-2" />
-            </div>
-            <div className="grid gap-3 md:grid-cols-5">
-              <TopClients className="md:col-span-3" />
-              <Deadlines done={done} className="md:col-span-2" />
-            </div>
+
+            <DocContext value={true}>
+              <article
+                aria-label={`Månedsavslutning ${report.label}`}
+                className="bg-card shadow-stamp flex flex-col gap-6 rounded-md px-5 py-8 [counter-reset:section] sm:px-12 sm:py-12 print:rounded-none print:p-0 print:shadow-none"
+              >
+                <header className="flex flex-col gap-5">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
+                        <ZapIcon
+                          className="size-3 fill-current"
+                          aria-hidden="true"
+                        />
+                        Sanna · Månedsavslutning
+                      </span>
+                      <h2 className="text-foreground text-2xl font-medium tracking-tight sm:text-3xl">
+                        {report.label}
+                      </h2>
+                      <span className="text-muted-foreground text-sm">
+                        {FIRM.name} · org.nr {FIRM.orgNo}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 sm:text-right">
+                      <div className="flex flex-col gap-0.5 text-xs">
+                        <span className="text-foreground font-medium">
+                          Utarbeidet av {ACCOUNTANT.name}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {report.prepared}
+                        </span>
+                        <span className="text-muted-foreground">
+                          Tall per {report.asOf}, fra Tripletex
+                        </span>
+                      </div>
+                      <TrulsPhoto className="size-10 sm:order-first" />
+                    </div>
+                  </div>
+                  <div className="text-foreground flex flex-col gap-2 text-sm text-pretty">
+                    {report.summary.map((line) => (
+                      <p key={line}>{line}</p>
+                    ))}
+                  </div>
+                </header>
+
+                <StatTiles report={report} />
+                <Kpis report={report} />
+                <GoalCard />
+                <BookedChart />
+                <Utilization />
+                <TopClients />
+                <Deadlines done={done} />
+                {monthId === MONTH_REPORTS[0].id ? (
+                  <Notes onAsk={(text) => openPane("messages", text)} />
+                ) : null}
+
+                <footer className="border-border text-muted-foreground flex flex-wrap items-center justify-between gap-2 border-t pt-4 text-xs">
+                  <span>
+                    Spørsmål om tallene? Skriv til {ACCOUNTANT.first} i
+                    Meldinger.
+                  </span>
+                  <span>Side 1 av 1</span>
+                </footer>
+              </article>
+            </DocContext>
           </TabsContent>
         </Tabs>
 
-        <p className="text-muted-foreground flex flex-wrap items-center gap-x-3 text-xs">
+        <p className="text-muted-foreground flex flex-wrap items-center gap-x-3 text-xs print:hidden">
           <span>
             {FIRM.name} · org.nr {FIRM.orgNo}
           </span>

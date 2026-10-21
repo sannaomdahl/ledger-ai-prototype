@@ -253,3 +253,15 @@
   --color-warning-text: var(--warning-text);
   --color-destructive: var(--destructive);
 }
+
+/* "Last ned PDF" on the customer view prints the month-end sheet alone,
+   on white, with nothing else from the page around it. */
+@media print {
+  .sanna {
+    --background: #ffffff;
+    --color-background: #ffffff;
+  }
+  .sanna [role="tabpanel"][hidden] {
+    display: none !important;
+  }
+}

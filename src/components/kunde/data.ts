@@ -392,6 +392,12 @@ export const FLAGS: Flag[] = [
 export type MonthReport = {
   id: string
   label: string
+  /** When Truls closed the month and wrote it up. */
+  prepared: string
+  /** The date the figures are per. */
+  asOf: string
+  /** Truls' summary, two or three sentences. */
+  summary: string[]
   tiles: {
     label: string
     value: string
@@ -405,6 +411,13 @@ export const MONTH_REPORTS: MonthReport[] = [
   {
     id: "2026-09",
     label: "September 2026",
+    prepared: "8. oktober 2026",
+    asOf: "30. september 2026",
+    summary: [
+      "Omsetningen endte på 1 284 000 kr, 12 % høyere enn i august. Økningen kommer fra to nye kunder, Nordvik Energi og Solberg Bygg.",
+      "Lønnskostnadene økte med 64 000 kr fordi Nora startet 1. september. Resultatet ble 318 000 kr, 25 % margin.",
+      "Programvare har økt 20 % siden august, mest Claude. Husleien 1. november trenger 25 000 kr fra sparekontoen.",
+    ],
     tiles: [
       {
         label: "Omsetning",
@@ -449,6 +462,12 @@ export const MONTH_REPORTS: MonthReport[] = [
   {
     id: "2026-08",
     label: "August 2026",
+    prepared: "9. september 2026",
+    asOf: "31. august 2026",
+    summary: [
+      "Omsetningen tok seg opp etter ferien og endte på 1 146 000 kr, 54 % over juli.",
+      "Ingen endringer i lønn. Alle kundefordringer er innenfor fristen, og resultatet ble 262 000 kr.",
+    ],
     tiles: [
       {
         label: "Omsetning",
@@ -493,6 +512,12 @@ export const MONTH_REPORTS: MonthReport[] = [
   {
     id: "2026-07",
     label: "Juli 2026",
+    prepared: "11. august 2026",
+    asOf: "31. juli 2026",
+    summary: [
+      "Feriemåned: omsetningen endte på 742 000 kr, 40 % under juni, som planlagt.",
+      "Feriepengene ble utbetalt i juni, så lønnskostnadene i juli er ordinære. Resultatet ble 41 000 kr.",
+    ],
     tiles: [
       {
         label: "Omsetning",
